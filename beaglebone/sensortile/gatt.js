@@ -12,7 +12,9 @@ const GATT_ARGS = [
   '--listen'
 ]
 
-function listen () {
+const DATA_EXP = /(?:handle\s+=\s+)(0x[0-9a-f]{4})\s+(?:value:\s+)([0-9a-f]{2}(?:\s*[0-9a-f]{2})*)/i
+
+function listen (onDataCallback) {
   console.log(`Starting ${GATT_TOOL}...`)
   const child = spawn(GATT_TOOL, GATT_ARGS)
   // const child = spawn('tail', ['-f', 'sample.txt'])
@@ -24,7 +26,18 @@ function listen () {
 
   // Read output from the child process
   child.stdout.on('data', (data) => {
-    console.log('Output:', data.toString())
+    const dataStr = data.toString()
+    console.log('Output:', dataStr)
+
+    dataStr.split('\n').forEach(str => {
+      const matches = str.match(DATA_EXP)
+      if (matches) {
+        onDataCallback({
+          handle: matches[1],
+          value: matches[2]
+        })
+      }
+    })
   })
 
   // When some error is written

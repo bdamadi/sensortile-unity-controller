@@ -17,6 +17,8 @@ public class Connection : MonoBehaviour
     websocket.OnOpen += () =>
     {
       Debug.Log("Connection open!");
+
+      websocket.SendText("GATT START");
     };
 
     websocket.OnError += (e) =>
@@ -37,7 +39,7 @@ public class Connection : MonoBehaviour
     };
 
     // Keep sending messages at every 0.3s
-    InvokeRepeating("SendWebSocketMessage", 0.0f, 0.3f);
+    //InvokeRepeating("SendWebSocketMessage", 0.0f, 0.3f);
 
     await websocket.Connect();
   }
