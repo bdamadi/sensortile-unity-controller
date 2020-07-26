@@ -1,0 +1,8 @@
+Output: Characteristic value was written successfully
+Output: Notification handle = 0x0011 value: fd 16 82 03 91 fe df 00 1a 00 d1 ff f7 ff 94 fe 60 ff fa fc
+Output: Notification handle = 0x0011 value: 04 17 81 03 92 fe de 00 1b 00 d0 ff f7 ff 9a fe 5b ff fa fc
+Output: Notification handle = 0x0011 value: 0a 17 81 03 92 fe e0 00 19 00 cf ff f7 ff a0 fe 5a ff f1 fc
+Output: Notification handle = 0x0011 value: 10 17 81 03 91 fe df 00 1c 00 d2 ff f7 ff 9e fe 5b ff f7 fc
+Output: Notification handle = 0x0011 value: 16 17 81 03 93 fe df 00 1b 00 d2 ff f8 ff 9a fe 5d ff f4 fc
+Output: Notification handle = 0x0011 value: 1d 17 82 03 92 fe df 00 1c 00 d2 ff f7 ff 92 fe 5b ff ff fc
+Output: Notification handle = 0x0011 value: 23 17 81 03 92 fe df 00 19 00 d1 ff f7 ff a1 fe 5a ff f6 fc
