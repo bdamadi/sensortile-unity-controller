@@ -101,7 +101,7 @@ float angular_velocity_x_filter, angular_velocity_x_prev = 0,
 		angular_velocity_x_filter_prev = 0;
 float angular_displacement = 0;
 
-float training_dataset[6][MAX_TRAIN_DATA_CYCLES][3];
+float training_dataset[NUMBER_GESTURES][MAX_TRAIN_DATA_CYCLES][3];
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -222,11 +222,11 @@ void getAngularVelocity(void *handle, int *xyz) {
 	}
 }
 
-void Feature_Extraction_Gyro(void *handle, int * ttt_1, int * ttt_2,
-		int * ttt_3, int * ttt_mag_scale) {
+int Feature_Extraction_Gyro(void *handle, int * ttt_1, int * ttt_2,
+		int * ttt_3, int * ttt_mag_scale, int maxAcquiredCycles) {
 
 	int ttt[3], ttt_initial[3], ttt_offset[3];
-	int axis_index, sample_index;
+	int axis_index, sample_index, valid;
 	float rotate_angle[3];
 	float angle_mag, angle_mag_max_threshold;
 	float Tsample;
@@ -277,7 +277,8 @@ void Feature_Extraction_Gyro(void *handle, int * ttt_1, int * ttt_2,
 	BSP_LED_On(LED1);
 
 
-	for (sample_index = 0; sample_index < MAX_ROTATION_ACQUIRE_CYCLES; sample_index++) {
+	valid = 0;
+	for (sample_index = 0; sample_index < maxAcquiredCycles; sample_index++) {
 
 		/*
 		 * Acquire initial sample value of rotation rate
@@ -351,7 +352,7 @@ void Feature_Extraction_Gyro(void *handle, int * ttt_1, int * ttt_2,
 		 */
 
 		if (angle_mag >= angle_mag_max_threshold) {
-			BSP_LED_Off(LED1);
+			valid = 1;
 			break;
 		}
 
@@ -376,12 +377,11 @@ void Feature_Extraction_Gyro(void *handle, int * ttt_1, int * ttt_2,
 
 	*ttt_mag_scale = (int) (angle_mag * 100);
 	BSP_LED_Off(LED1);
-	return;
+	return valid;
 }
 
 void printOutput_ANN(ANN *net, int input_state, int * error) {
 
-	char dataOut[256] = { };
 	int i, loc, count;
 	float point = 0.0;
 	float rms_output, mean_output, mean_output_rem, next_max;
@@ -449,28 +449,24 @@ void printOutput_ANN(ANN *net, int input_state, int * error) {
 		mean_output_rem = 0;
 	}
 
-	sprintf(dataOut, "\r\nState %i\tMax %i\tMean %i\t\tZ-score %i\tOutputs",
+	STLBLE_PRINTF("\r\nState %i\tMax %i\tMean %i\t\tZ-score %i\tOutputs",
 			loc, (int) (100 * point), (int) (100 * mean_output),
 			(int) (100 * classification_metric));
-	CDC_Fill_Buffer((uint8_t *) dataOut, strlen(dataOut));
 
 	for (i = 0; i < net->topology[net->n_layers - 1]; i++) {
-		sprintf(dataOut, "\t%i", (int) (100 * net->output[i]));
-		CDC_Fill_Buffer((uint8_t *) dataOut, strlen(dataOut));
+		STLBLE_PRINTF("\t%i", (int) (100 * net->output[i]));
 	}
 
 	if (loc != input_state) {
 		*error = 1;
-		sprintf(dataOut, "\t Classification Error");
-		CDC_Fill_Buffer((uint8_t *) dataOut, strlen(dataOut));
+		STLBLE_PRINTF("\t Classification Error");
 	}
 
 	if ((loc == input_state)
 			&& ((classification_metric < CLASSIFICATION_ACC_THRESHOLD)
 					|| ((point / next_max) < CLASSIFICATION_DISC_THRESHOLD))) {
 		*error = 1;
-		sprintf(dataOut, "\t Classification Accuracy Limit");
-		CDC_Fill_Buffer((uint8_t *) dataOut, strlen(dataOut));
+		STLBLE_PRINTF("\t Classification Accuracy Limit");
 	}
 
 }
@@ -489,7 +485,7 @@ void CollectTrainData(void *handle, ANN *net, int trainingCycle, int gestureNumb
 	STLBLE_PRINTF("\r\nPerform Gesture %d on LED On", gestureNumber + 1);
 
 	Feature_Extraction_Gyro(handle, &ttt_1, &ttt_2, &ttt_3,
-			&ttt_mag_scale);
+			&ttt_mag_scale, MAX_ROTATION_ACQUIRE_CYCLES);
 
 	STLBLE_PRINTF("\r\nAngle Values %i\t\%i\%i", ttt_1, ttt_2, ttt_3);
 
@@ -517,13 +513,13 @@ void CollectTrainData(void *handle, ANN *net, int trainingCycle, int gestureNumb
 int TrainingANN(ANN *net) {
 
 	float training_data_init[3];
-	float * init_state[6];
+	float * init_state[NUMBER_GESTURES];
 	int i, j, k, m, error, net_error;
 
 	/*
 	 * Enter NN training
 	 */
-	float _Motions[6][6] = {
+	float _Motions[NUMBER_GESTURES][NUMBER_GESTURES] = {
 			{ 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
 			{ 0.0, 1.0, 0.0, 0.0, 0.0, 0.0 },
 			{ 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 },
@@ -554,7 +550,7 @@ int TrainingANN(ANN *net) {
 
 		i = 0;
 		while (i < training_cycles) {
-			for (j = 0; j < 6; j++) {
+			for (j = 0; j < NUMBER_GESTURES; j++) {
 
 				if ((i % 20 == 0 && i < 100) || i % 100 == 0) {
 					STLBLE_PRINTF("\r\n\r\nTraining Epochs: %d\r\n", i);
@@ -562,7 +558,7 @@ int TrainingANN(ANN *net) {
 					LED_Code_Blink(0);
 
 					net_error = 0;
-					for (m = 0; m < 6; m++) {
+					for (m = 0; m < NUMBER_GESTURES; m++) {
 						run_ann(net, training_dataset[m][k]);
 						printOutput_ANN(net, m, &error);
 						if (error == 1) {
@@ -601,7 +597,7 @@ int RunANN(void *handle, ANN *net) {
 //	HAL_Delay(START_POSITION_INTERVAL);
 
 	Feature_Extraction_Gyro(handle, &ttt_1, &ttt_2, &ttt_3,
-			&ttt_mag_scale);
+			&ttt_mag_scale, 5);
 
 	XYZ[0] = (float) ttt_1;
 	XYZ[1] = (float) ttt_2;
@@ -637,12 +633,12 @@ int RunANN(void *handle, ANN *net) {
 //		LED_Code_Blink(loc + 1);
 //	}
 
-	if (loc >= 0 && loc < 6) {
+	if (loc >= 0 && loc < NUMBER_GESTURES) {
 		STLBLE_PRINTF("\n\rNeural Network Classification - Rotation %d", loc);
 	} else if (loc == -1) {
 		STLBLE_PRINTF("\n\rNeural Network Classification - ERROR");
 	} else {
-		STLBLE_PRINTF("\n\rNeural Network Classification - NULL");
+	STLBLE_PRINTF("\n\rNeural Network Classification - NULL");
 	}
 
 	return loc;

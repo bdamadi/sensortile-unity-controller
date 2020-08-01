@@ -85,7 +85,6 @@ USBD_HandleTypeDef USBD_Device;
 static void Init_BlueNRG_Custom_Services(void);
 static void Init_BlueNRG_Stack(void);
 static void InitTimers(void);
-static void SendMotionData(void);
 
 //uint8_t CDC_Fill_Buffer(uint8_t* Buf, uint32_t TotalLen){}
 
@@ -164,8 +163,8 @@ int main(void) {
 			0.653600, 0.542500, 0.766900, 0.411500 };
 	float dedw[81];
 	float bias[15];
-	unsigned int network_topology[3] = { 3, 9, 6 };
-	float output[6];
+	unsigned int network_topology[3] = { 3, 9, NUMBER_GESTURES };
+	float output[NUMBER_GESTURES];
 
 	ANN net;
 	net.weights = weights;
@@ -222,9 +221,8 @@ int main(void) {
 
 			if (hasTrained) {
 				loc = RunANN(LSM6DSM_G_0_handle, &net);
-
-				/* Send motion data to BLE connection */
-				if (W2ST_CHECK_CONNECTION(W2ST_CONNECT_MOTION)) {
+				if (loc >= 0 && loc < NUMBER_GESTURES) {
+					/* Send motion data to BLE connection */
 					Motion_Update(hasTrained, loc, trainedGestureDataCycle);
 				}
 			}
@@ -275,9 +273,7 @@ int main(void) {
 			trainedGestureDataCycle[trainingGesture]++;
 
 			/* Send training status to BLE connection */
-			if (W2ST_CHECK_CONNECTION(W2ST_CONNECT_MOTION)) {
-				Motion_Update(hasTrained, -1, trainedGestureDataCycle);
-			}
+			Motion_Update(hasTrained, -1, trainedGestureDataCycle);
 
 			// Check if all gestures have been trained
 			hasTrained = 1;
@@ -289,6 +285,9 @@ int main(void) {
 			}
 
 			if (hasTrained) {
+				/* Send training status to BLE connection */
+				Motion_Update(-1, -1, trainedGestureDataCycle);
+
 				// Finish collecting data, start training
 				if (TrainingANN(&net) == 0) {
 					LED_Code_Blink(0);
@@ -301,9 +300,7 @@ int main(void) {
 				STLBLE_PRINTF("\r\n\r\nTraining Complete, Now Start Detecting Motions\r\n");
 
 				/* Send training status to BLE connection */
-				if (W2ST_CHECK_CONNECTION(W2ST_CONNECT_MOTION)) {
-					Motion_Update(hasTrained, -1, trainedGestureDataCycle);
-				}
+				Motion_Update(hasTrained, -1, trainedGestureDataCycle);
 			}
 		}
 
