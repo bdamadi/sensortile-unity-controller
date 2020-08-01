@@ -272,9 +272,6 @@ int main(void) {
 			CollectTrainData(LSM6DSM_G_0_handle, &net, trainedGestureDataCycle[trainingGesture], trainingGesture);
 			trainedGestureDataCycle[trainingGesture]++;
 
-			/* Send training status to BLE connection */
-			Motion_Update(hasTrained, -1, trainedGestureDataCycle);
-
 			// Check if all gestures have been trained
 			hasTrained = 1;
 			for (i = 0; i < NUMBER_GESTURES; i++) {
@@ -300,7 +297,10 @@ int main(void) {
 				STLBLE_PRINTF("\r\n\r\nTraining Complete, Now Start Detecting Motions\r\n");
 
 				/* Send training status to BLE connection */
-				Motion_Update(hasTrained, -1, trainedGestureDataCycle);
+				Motion_Update(1, -1, trainedGestureDataCycle);
+			} else {
+				/* Send training status to BLE connection */
+				Motion_Update(0, -1, trainedGestureDataCycle);
 			}
 		}
 
