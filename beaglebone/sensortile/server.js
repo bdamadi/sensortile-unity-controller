@@ -1,6 +1,8 @@
-const gatt = require('./gatt')
+const { writeRequest } = require('./gatt')
 const WebSocket = require('ws')
 const wss = new WebSocket.Server({ port: 1234 })
+
+const GATT_WRITE_CMD = /GATT WRITE ([0-9a-f]{4}) ([0-9a-f]{4})/i
 
 let gattProcess = null
 
@@ -12,14 +14,19 @@ wss.on('connection', (ws) => {
   // Receive command from websocket client, e.i. Unity
   ws.on('message', (message) => {
     console.log(`${ws._socket.remoteAddress}: << ${message}`)
-    if (message === 'GATT START') {
+
+    const matches = message.match(GATT_WRITE_CMD)
+    if (matches) {
       if (gattProcess == null) {
-        gattProcess = gatt(({ value }) => {
+        const handle = matches[1]
+        const value = matches[2]
+        gattProcess = writeRequest(handle, value, ({ value }) => {
           console.log(`${ws._socket.remoteAddress}: >> ${value}`)
-          ws.send(value)
+          ws.send('DATA:' + value)
         })
       } else {
         console.log('gatttool is already running')
+        ws.send(`ERROR:gatttool is already running`)
       }
     } else if (message === 'GATT STOP') {
       if (gattProcess != null) {
@@ -27,6 +34,7 @@ wss.on('connection', (ws) => {
         gattProcess = null
       } else {
         console.log('gatttool is not running')
+        ws.send(`ERROR:gatttool is not running`)
       }
     }
   })
