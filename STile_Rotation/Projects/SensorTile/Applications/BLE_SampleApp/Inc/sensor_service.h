@@ -73,7 +73,7 @@
 /* Exported functions ------------------------------------------------------- */
 extern tBleStatus Add_HWServW2ST_Service(void);
 extern tBleStatus Environmental_Update(int32_t Press,uint16_t Hum,int16_t Temp2,int16_t Temp1);
-
+extern tBleStatus Motion_Update(uint8_t hasTrained, uint8_t gestureNumber, uint8_t *trainedGestureDataCycle);
 extern tBleStatus LED_Update(uint8_t LedStatus);
 
 extern tBleStatus Stderr_Update(uint8_t *data,uint8_t length);
@@ -115,10 +115,23 @@ used in Console service */
 #define FEATURE_MASK_LED 0x20000000
 
 /* BLE Characteristic connection control */
-/* Environmental Data */
-#define W2ST_CONNECT_ENV           (1    )
-/* LED status */
-#define W2ST_CONNECT_LED           (1<<1 )
+///* Environmental Data */
+//#define W2ST_CONNECT_ENV           (1    )
+///* LED status */
+//#define W2ST_CONNECT_LED           (1<<1 )
+
+/* Motion Detection data */
+#define W2ST_CONNECT_MOTION       		(1   )
+
+/* Training status */
+#define W2ST_CONNECT_TRAINING_MOTION_1	(1<<1)
+#define W2ST_CONNECT_TRAINING_MOTION_2	(1<<2)
+#define W2ST_CONNECT_TRAINING_MOTION_3	(1<<3)
+#define W2ST_CONNECT_TRAINING_MOTION_4	(1<<4)
+#define W2ST_CONNECT_TRAINING_MOTION_5	(1<<5)
+#define W2ST_CONNECT_TRAINING_MOTION_6	(1<<6)
+
+
 /* Acceleration/Gyroscope/Magneto */
 #define W2ST_CONNECT_ACC_GYRO_MAG  (1<<2 )
 

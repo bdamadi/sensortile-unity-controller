@@ -73,10 +73,13 @@ extern "C" {
 #define RTC_ASYNCH_PREDIV  0x7F
 #define RTC_SYNCH_PREDIV   0x00FF
 
+#define NUMBER_GESTURES 	6
+
+#define MAX_TRAIN_DATA_CYCLES 	8
+#define NUMBER_TRAIN_DATA_CYCLES 1
+
 /* Exported macro ------------------------------------------------------------*/
 /* Exported variables --------------------------------------------------------*/
-extern volatile uint8_t hasTrained;
-
 extern void *LSM6DSM_X_0_handle;
 extern void *LSM6DSM_G_0_handle;
 extern void *LSM303AGR_X_0_handle;
@@ -87,8 +90,9 @@ void RTC_TimeRegulate( uint8_t hh, uint8_t mm, uint8_t ss );
 
 void LED_Code_Blink(int count);
 
-void TrainRotation(void *handle, ANN *net);
-int Gyro_Sensor_Handler_Rotation(void *handle, ANN *net, int prev_loc);
+void CollectTrainData(void *handle, ANN *net, int trainingCycle, int gestureNumber);
+int TrainingANN(ANN *net);
+int RunANN(void *handle, ANN *net);
 
 #ifdef __cplusplus
 }

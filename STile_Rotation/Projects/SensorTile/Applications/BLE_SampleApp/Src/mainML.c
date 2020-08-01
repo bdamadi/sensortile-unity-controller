@@ -55,7 +55,7 @@
 /* Data acquisition period [ms] */
 #define DATA_PERIOD_MS 10
 
-#define NUMBER_TEST_CYCLES 20
+#define NUMBER_TEST_CYCLES 2
 #define CLASSIFICATION_ACC_THRESHOLD 1
 #define CLASSIFICATION_DISC_THRESHOLD 1.05
 #define START_POSITION_INTERVAL 3000
@@ -100,6 +100,8 @@ float angular_displacement_filter, angular_displacement_filter_prev,
 float angular_velocity_x_filter, angular_velocity_x_prev = 0,
 		angular_velocity_x_filter_prev = 0;
 float angular_displacement = 0;
+
+float training_dataset[6][MAX_TRAIN_DATA_CYCLES][3];
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -473,254 +475,180 @@ void printOutput_ANN(ANN *net, int input_state, int * error) {
 
 }
 
-void TrainRotation(void *handle, ANN *net) {
 
-	uint8_t id;
-	SensorAxes_t angular_velocity;
-	uint8_t status;
-	float training_dataset[6][8][3];
-	float training_data_init[3];
-	float * init_state[6];
+void CollectTrainData(void *handle, ANN *net, int trainingCycle, int gestureNumber) {
+
 	float XYZ[3];
 	float xyz[3];
-	char msg1[256];
-	int num_train_data_cycles;
-	int i, j, k, m, n, r, index, error, net_error;
+	int r;
 	int ttt_1, ttt_2, ttt_3, ttt_mag_scale;
 
-	BSP_GYRO_Get_Instance(handle, &id);
-	BSP_GYRO_IsInitialized(handle, &status);
-	if (status == 1) {
-		if (BSP_GYRO_Get_Axes(handle, &angular_velocity) == COMPONENT_ERROR) {
-			angular_velocity.AXIS_X = 0;
-			angular_velocity.AXIS_Y = 0;
-			angular_velocity.AXIS_Z = 0;
-		}
+	STLBLE_PRINTF("\r\nMove to Start Position - Wait for LED On");
+	HAL_Delay(START_POSITION_INTERVAL);
 
-		sprintf(msg1, "\r\n\r\n\r\nTraining Start in 5 seconds ..");
-		CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-		BSP_LED_Off(LED1);
-		HAL_Delay(5000);
+	STLBLE_PRINTF("\r\nPerform Gesture %d on LED On", gestureNumber + 1);
 
-		/*
-		 * Maximum of 8 cycles
-		 */
-		num_train_data_cycles = 1;
+	Feature_Extraction_Gyro(handle, &ttt_1, &ttt_2, &ttt_3,
+			&ttt_mag_scale);
 
-		for (k = 0; k < num_train_data_cycles; k++) {
-			for (i = 0; i < 6; i++) {
+	STLBLE_PRINTF("\r\nAngle Values %i\t\%i\%i", ttt_1, ttt_2, ttt_3);
 
-				sprintf(msg1, "\r\nMove to Start Position - Wait for LED On");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-				HAL_Delay(START_POSITION_INTERVAL);
+	XYZ[0] = (float) ttt_1;
+	XYZ[1] = (float) ttt_2;
+	XYZ[2] = (float) ttt_3;
 
-				switch (i) {
-				HAL_Delay(1000);
-			case 0:
+	motion_softmax(net->topology[0], XYZ, xyz);
 
-				sprintf(msg1, "\r\nPerform Rotation 1 on LED On");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
+	training_dataset[gestureNumber][trainingCycle][0] = xyz[0];
+	training_dataset[gestureNumber][trainingCycle][1] = xyz[1];
+	training_dataset[gestureNumber][trainingCycle][2] = xyz[2];
 
-				Feature_Extraction_Gyro(handle, &ttt_1, &ttt_2, &ttt_3,
-						&ttt_mag_scale);
-
-				break;
-
-			case 1:
-
-				sprintf(msg1, "\r\nPerform Rotation 2 on LED On");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-
-				Feature_Extraction_Gyro(handle, &ttt_1, &ttt_2, &ttt_3,
-						&ttt_mag_scale);
-
-				break;
-
-			case 2:
-				sprintf(msg1, "\r\nPerform Rotation 3 on LED On");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-
-				Feature_Extraction_Gyro(handle, &ttt_1, &ttt_2, &ttt_3,
-						&ttt_mag_scale);
-
-				break;
-
-			case 3:
-				sprintf(msg1, "\r\nPerform Rotation 4 on LED On");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-
-				Feature_Extraction_Gyro(handle, &ttt_1, &ttt_2, &ttt_3,
-						&ttt_mag_scale);
-
-				break;
-
-			case 4:
-				sprintf(msg1, "\r\nPerform Rotation 5 on LED On");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-
-				Feature_Extraction_Gyro(handle, &ttt_1, &ttt_2, &ttt_3,
-						&ttt_mag_scale);
-
-				break;
-
-			case 5:
-				sprintf(msg1, "\r\nPerform Rotation 6 on LED On");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-
-				Feature_Extraction_Gyro(handle, &ttt_1, &ttt_2, &ttt_3,
-						&ttt_mag_scale);
-
-				break;
-
-				}
-
-                sprintf(msg1, "\r\nAngle Values %i\t\%i\%i", ttt_1, ttt_2, ttt_3);
-                CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-
-                XYZ[0] = (float) ttt_1;
-                XYZ[1] = (float) ttt_2;
-                XYZ[2] = (float) ttt_3;
-
-				motion_softmax(net->topology[0], XYZ, xyz);
-
-				training_dataset[i][k][0] = xyz[0];
-				training_dataset[i][k][1] = xyz[1];
-				training_dataset[i][k][2] = xyz[2];
-
-				sprintf(msg1, "\r\n Softmax Input \t");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-				for (r = 0; r < 3; r++) {
-					sprintf(msg1, "\t%i", (int) XYZ[r]);
-					CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-				}
-				sprintf(msg1, "\r\n Softmax Output\t");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-				for (r = 0; r < 3; r++) {
-					sprintf(msg1, "\t%i", (int) (100 * xyz[r]));
-					CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-				}
-
-				sprintf(msg1, "\r\n\r\n");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-
-			}
-
-		}
-
-		/*
-		 * Enter NN training
-		 */
-
-		float _Motion_1[6] = { 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-		float _Motion_2[6] = { 0.0, 1.0, 0.0, 0.0, 0.0, 0.0 };
-		float _Motion_3[6] = { 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 };
-		float _Motion_4[6] = { 0.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
-		float _Motion_5[6] = { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0 };
-		float _Motion_6[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
-
-		sprintf(msg1, "\r\n\r\nTraining Start\r\n");
-		CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-
-		/*
-		 * Initialize weights with multistart cycle
-		 */
-
-		init_state[0] = _Motion_1;
-		init_state[1] = _Motion_2;
-		init_state[2] = _Motion_3;
-		init_state[3] = _Motion_4;
-		init_state[4] = _Motion_5;
-		init_state[5] = _Motion_6;
-
-		init_ann(net);
-		/*
-		 * Initialize training with default input
-		 */
-
-		index = 0;
-
-		training_data_init[0] = 1;
-		training_data_init[1] = 1;
-		training_data_init[2] = 1;
-		train_ann(net, training_data_init, init_state[index]);
-
-		for (k = 0; k < num_train_data_cycles; k++) {
-
-			i = 0;
-			while (i < training_cycles) {
-				for (j = 0; j < 6; j++) {
-
-					if ((i % 20 == 0 && i < 100) || i % 100 == 0) {
-						char print_train_time[128];
-						sprintf(print_train_time,
-								"\r\n\r\nTraining Epochs: %d\r\n", i);
-						CDC_Fill_Buffer((uint8_t *) print_train_time,
-								strlen(print_train_time));
-
-						LED_Code_Blink(0);
-
-						net_error = 0;
-						for (m = 0; m < 6; m++) {
-							run_ann(net, training_dataset[m][k]);
-							printOutput_ANN(net, m, &error);
-							if (error == 1) {
-								net_error = 1;
-							}
-						}
-						sprintf(msg1, "\r\nIndex %i Error State: %i\r\n", index,
-								net_error);
-						CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-						if (net_error == 0) {
-							return;
-						}
-
-					}
-
-					switch (j) {
-
-                    case 0:
-                            train_ann(net, training_dataset[j][k], _Motion_1);
-                            break;
-                    case 1:
-                            train_ann(net, training_dataset[j][k], _Motion_2);
-                            break;
-                    case 2:
-                            train_ann(net, training_dataset[j][k], _Motion_3);
-                            break;
-                    case 3:
-                            train_ann(net, training_dataset[j][k], _Motion_4);
-                            break;
-                    case 4:
-                            train_ann(net, training_dataset[j][k], _Motion_5);
-                            break;
-                    case 5:
-                            train_ann(net, training_dataset[j][k], _Motion_6);
-                            break;
-                    default:
-                            break;
-					}
-					i++;
-					HAL_Delay(5);
-				}
-
-			}
-
-		}
+	STLBLE_PRINTF("\r\n Softmax Input \t");
+	for (r = 0; r < 3; r++) {
+		STLBLE_PRINTF("\t%i", (int) XYZ[r]);
 	}
-
-	if (net_error == 0) {
-		LED_Code_Blink(0);
-		LED_Code_Blink(0);
-	} else {
-		LED_Code_Blink(1);
-		LED_Code_Blink(1);
+	STLBLE_PRINTF("\r\n Softmax Output\t");
+	for (r = 0; r < 3; r++) {
+		STLBLE_PRINTF("\t%i", (int) (100 * xyz[r]));
 	}
-
-	sprintf(msg1, "\r\n\r\nTraining Complete, Now Start Test Motions\r\n");
-	CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-	return;
+	STLBLE_PRINTF("\r\n\r\n");
 }
 
+int TrainingANN(ANN *net) {
+
+	float training_data_init[3];
+	float * init_state[6];
+	int i, j, k, m, error, net_error;
+
+	/*
+	 * Enter NN training
+	 */
+	float _Motions[6][6] = {
+			{ 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
+			{ 0.0, 1.0, 0.0, 0.0, 0.0, 0.0 },
+			{ 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 },
+			{ 0.0, 0.0, 0.0, 1.0, 0.0, 0.0 },
+			{ 0.0, 0.0, 0.0, 0.0, 1.0, 0.0 },
+			{ 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 }
+	};
+
+	STLBLE_PRINTF("\r\n\r\nTraining Start\r\n");
+
+	/*
+	 * Initialize weights with multistart cycle
+	 */
+	for (i = 0; i < 6; i++) init_state[i] = _Motions[i];
+
+	init_ann(net);
+
+	/*
+	 * Initialize training with default input
+	 */
+
+	training_data_init[0] = 1;
+	training_data_init[1] = 1;
+	training_data_init[2] = 1;
+	train_ann(net, training_data_init, init_state[0]);
+
+	for (k = 0; k < NUMBER_TRAIN_DATA_CYCLES; k++) {
+
+		i = 0;
+		while (i < training_cycles) {
+			for (j = 0; j < 6; j++) {
+
+				if ((i % 20 == 0 && i < 100) || i % 100 == 0) {
+					STLBLE_PRINTF("\r\n\r\nTraining Epochs: %d\r\n", i);
+
+					LED_Code_Blink(0);
+
+					net_error = 0;
+					for (m = 0; m < 6; m++) {
+						run_ann(net, training_dataset[m][k]);
+						printOutput_ANN(net, m, &error);
+						if (error == 1) {
+							net_error = 1;
+						}
+					}
+
+					STLBLE_PRINTF("\r\nIndex 0 Error State: %i\r\n", net_error);
+					if (net_error == 0) {
+						return net_error;
+					}
+
+				}
+
+				train_ann(net, training_dataset[j][k], _Motions[j]);
+
+				i++;
+				HAL_Delay(5);
+			}
+		}
+	}
+
+	return net_error;
+}
+
+int RunANN(void *handle, ANN *net) {
+	float xyz[3];
+	float XYZ[3];
+	float point;
+	int ttt_1, ttt_2, ttt_3, ttt_mag_scale;
+	int i, j, loc;
+
+	BSP_LED_Off(LED1);
+
+	STLBLE_PRINTF("\n\rMove to Start Position - Wait for LED On");
+//	HAL_Delay(START_POSITION_INTERVAL);
+
+	Feature_Extraction_Gyro(handle, &ttt_1, &ttt_2, &ttt_3,
+			&ttt_mag_scale);
+
+	XYZ[0] = (float) ttt_1;
+	XYZ[1] = (float) ttt_2;
+	XYZ[2] = (float) ttt_3;
+
+	motion_softmax(net->topology[0], XYZ, xyz);
+
+	STLBLE_PRINTF("\r\n Softmax Input: \t");
+	for (j = 0; j < 3; j++) {
+		STLBLE_PRINTF("%i\t", (int) XYZ[j]);
+	}
+	STLBLE_PRINTF("\r\n Softmax Output: \t");
+	for (j = 0; j < 3; j++) {
+		STLBLE_PRINTF("%i\t", (int) (100 * xyz[j]));
+	}
+	STLBLE_PRINTF("\r\n");
+
+	run_ann(net, xyz);
+
+	point = 0.0;
+	loc = -1;
+
+	for (i = 0; i < net->topology[net->n_layers - 1]; i++) {
+		if (net->output[i] > point && net->output[i] > 0.1) {
+			point = net->output[i];
+			loc = i;
+		}
+	}
+
+//	if (loc == -1) {
+//		LED_Code_Blink(0);
+//	} else {
+//		LED_Code_Blink(loc + 1);
+//	}
+
+	if (loc >= 0 && loc < 6) {
+		STLBLE_PRINTF("\n\rNeural Network Classification - Rotation %d", loc);
+	} else if (loc == -1) {
+		STLBLE_PRINTF("\n\rNeural Network Classification - ERROR");
+	} else {
+		STLBLE_PRINTF("\n\rNeural Network Classification - NULL");
+	}
+
+	return loc;
+}
+
+#ifdef __UNUSED_CODE
 int Gyro_Sensor_Handler_Rotation(void *handle, ANN *net, int prev_loc) {
 	uint8_t id;
 	SensorAxes_t angular_velocity;
@@ -799,39 +727,12 @@ int Gyro_Sensor_Handler_Rotation(void *handle, ANN *net, int prev_loc) {
 				LED_Code_Blink(loc + 1);
 			}
 
-			switch (loc) {
-			case 0:
-				sprintf(msg1, "\n\rNeural Network Classification - Rotation 1");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-				break;
-			case 1:
-				sprintf(msg1, "\n\rNeural Network Classification - Rotation 2");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-				break;
-			case 2:
-				sprintf(msg1, "\n\rNeural Network Classification - Rotation 3");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-				break;
-			case 3:
-				sprintf(msg1, "\n\rNeural Network Classification - Rotation 4");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-				break;
-			case 4:
-				sprintf(msg1, "\n\rNeural Network Classification - Rotation 5");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-				break;
-			case 5:
-				sprintf(msg1, "\n\rNeural Network Classification - Rotation 6");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-				break;
-			case -1:
-				sprintf(msg1, "\n\rNeural Network Classification - ERROR");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-				break;
-			default:
-				sprintf(msg1, "\n\rNeural Network Classification - NULL");
-				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-				break;
+			if (loc >= 0 && loc < 6) {
+				STLBLE_PRINTF("\n\rNeural Network Classification - Rotation %d", loc);
+			} else if (loc == -1) {
+				STLBLE_PRINTF("\n\rNeural Network Classification - ERROR");
+			} else {
+				STLBLE_PRINTF("\n\rNeural Network Classification - NULL");
 			}
 			k = k + 1;
 		}
@@ -839,7 +740,6 @@ int Gyro_Sensor_Handler_Rotation(void *handle, ANN *net, int prev_loc) {
 	return prev_loc;
 }
 
-#ifdef __UNUSED_CODE
 static int mainML(void) {
 	uint32_t msTick, msTickPrev = 0;
 	uint8_t doubleTap = 0;
