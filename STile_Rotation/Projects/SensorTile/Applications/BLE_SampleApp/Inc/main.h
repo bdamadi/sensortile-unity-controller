@@ -53,7 +53,7 @@
 /* Exported macro ------------------------------------------------------------*/
 
 /* Define the MOTENV1 MAC address, otherwise it will create a MAC related to STM32 UID */
-//#define STATIC_BLE_MAC 0xFF, 0xEE, 0xDD, 0xAA, 0xAA, 0xAA
+#define STATIC_BLE_MAC 0xFF, 0xEE, 0xDD, 0xAA, 0xAA, 0xAA
 
 /*************** Debug Defines ******************/
 /* Enable printf over USB Virtual COM Port */
