@@ -113,31 +113,31 @@ void InitTargetPlatform(TargetType_t BoardType)
  */
 static void Init_MEM1_Sensors(void)
 {
-  /* Humidity */  
-  if(BSP_HUMIDITY_Init( HUMIDITY_SENSORS_AUTO, &TargetBoardFeatures.HandleHumSensor )==COMPONENT_OK)
-  {
-    STLBLE_PRINTF("OK Humidity Sensor\n\r");
-  }
-
-  /* Temperature1 */
-  if(BSP_TEMPERATURE_Init( TEMPERATURE_SENSORS_AUTO, &TargetBoardFeatures.HandleTempSensors[TargetBoardFeatures.NumTempSensors] )==COMPONENT_OK)
-  {
-     STLBLE_PRINTF("OK Temperature Sensor1\n\r");
-     TargetBoardFeatures.NumTempSensors++;     
-  }
-
-  /* Temperature2 */
-  if(BSP_TEMPERATURE_Init( LPS22HB_T_0, &TargetBoardFeatures.HandleTempSensors[TargetBoardFeatures.NumTempSensors] )==COMPONENT_OK)
-  {
-     STLBLE_PRINTF("OK Temperature Sensor2\n\r");
-     TargetBoardFeatures.NumTempSensors++;
-  }
-  
-  /* Pressure */
-  if(BSP_PRESSURE_Init( PRESSURE_SENSORS_AUTO, &TargetBoardFeatures.HandlePressSensor )==COMPONENT_OK)
-  {
-    STLBLE_PRINTF("OK Pressure Sensor\n\r");
-  }
+//  /* Humidity */
+//  if(BSP_HUMIDITY_Init( HUMIDITY_SENSORS_AUTO, &TargetBoardFeatures.HandleHumSensor )==COMPONENT_OK)
+//  {
+//    STLBLE_PRINTF("OK Humidity Sensor\n\r");
+//  }
+//
+//  /* Temperature1 */
+//  if(BSP_TEMPERATURE_Init( TEMPERATURE_SENSORS_AUTO, &TargetBoardFeatures.HandleTempSensors[TargetBoardFeatures.NumTempSensors] )==COMPONENT_OK)
+//  {
+//     STLBLE_PRINTF("OK Temperature Sensor1\n\r");
+//     TargetBoardFeatures.NumTempSensors++;
+//  }
+//
+//  /* Temperature2 */
+//  if(BSP_TEMPERATURE_Init( LPS22HB_T_0, &TargetBoardFeatures.HandleTempSensors[TargetBoardFeatures.NumTempSensors] )==COMPONENT_OK)
+//  {
+//     STLBLE_PRINTF("OK Temperature Sensor2\n\r");
+//     TargetBoardFeatures.NumTempSensors++;
+//  }
+//
+//  /* Pressure */
+//  if(BSP_PRESSURE_Init( PRESSURE_SENSORS_AUTO, &TargetBoardFeatures.HandlePressSensor )==COMPONENT_OK)
+//  {
+//    STLBLE_PRINTF("OK Pressure Sensor\n\r");
+//  }
 
   /* Accelerometer */
   if (BSP_ACCELERO_Init(LSM6DSM_X_0, &LSM6DSM_X_0_handle) == COMPONENT_OK) {
