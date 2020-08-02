@@ -11,6 +11,15 @@ wss.on('listening', () => console.log('Start listening...'))
 wss.on('connection', (ws) => {
   console.log(`${ws._socket.remoteAddress}: Connected!`)
 
+  const onData = ({ value }) => {
+    console.log(`${ws._socket.remoteAddress}: >> DATA:${value}`)
+    ws.send('DATA:' + value)
+  }
+  const onError = (err) => {
+    console.log(`${ws._socket.remoteAddress}: >> ERROR:${err}`)
+    ws.send('ERROR:' + err)
+  }
+
   // Receive command from websocket client, e.i. Unity
   ws.on('message', (message) => {
     console.log(`${ws._socket.remoteAddress}: << ${message}`)
@@ -20,10 +29,7 @@ wss.on('connection', (ws) => {
       if (gattProcess == null) {
         const handle = matches[1]
         const value = matches[2]
-        gattProcess = writeRequest(handle, value, ({ value }) => {
-          console.log(`${ws._socket.remoteAddress}: >> ${value}`)
-          ws.send('DATA:' + value)
-        })
+        gattProcess = writeRequest(handle, value, { onData, onError })
       } else {
         console.log('gatttool is already running')
         ws.send(`ERROR:gatttool is already running`)

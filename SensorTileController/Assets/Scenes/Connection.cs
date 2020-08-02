@@ -20,6 +20,9 @@ public class Connection : MonoBehaviour
 
     WebSocket websocket;
 
+    public float axisMagnitude = 0.5f;
+    Vector3 axisInput;
+
     // Start is called before the first frame update
     async void Start()
     {
@@ -32,7 +35,7 @@ public class Connection : MonoBehaviour
 
         websocket.OnError += (e) =>
         {
-            Debug.Log("Error! " + e);
+            Debug.LogError("Error! " + e);
         };
 
         websocket.OnClose += (e) =>
@@ -46,7 +49,16 @@ public class Connection : MonoBehaviour
             var message = System.Text.Encoding.UTF8.GetString(bytes);
             Debug.Log("OnMessage! " + message);
 
-            if (message.StartsWith("DATA:"))
+            if (message.StartsWith("ERROR:"))
+            {
+                SendWebSocketMessage("GATT STOP");
+                statusText.text = message.Substring("ERROR:".Length);
+                for (var i = 0; i < NUMBER_GESTURES; i++)
+                {
+                    gestureTrainButtons[i].enabled = true;
+                }
+            }
+            else if (message.StartsWith("DATA:"))
             {
                 var bytesString = message.Substring("DATA:".Length).Split(' ');
                 for (var i = 0; i < NUMBER_GESTURES; i++)
@@ -66,14 +78,45 @@ public class Connection : MonoBehaviour
                     statusText.text = "Training Complete, Now Start Detecting Motions...";
 
                     int detectedGesture = int.Parse(bytesString[3], System.Globalization.NumberStyles.HexNumber);
+                    for (var i = 0; i < NUMBER_GESTURES; i++)
+                    {
+                        gestureTrainTexts[i].color = i == detectedGesture ? Color.red : Color.black;
+                    }
+
                     if (detectedGesture >= 0 && detectedGesture < NUMBER_GESTURES)
                     {
-                        detectionText.text = "Detected Gesture " + (detectedGesture + 1).ToString();
-                        for (var i = 0; i < NUMBER_GESTURES; i++)
+                        detectionText.text = "Detected Gesture: " + (detectedGesture + 1).ToString();
+                        switch (detectedGesture)
                         {
-                            gestureTrainTexts[i].color = i == detectedGesture ? Color.red : Color.black;
+                            case 0:
+                                //axisInput.x = 0;
+                                axisInput.y += axisMagnitude;
+                                break;
+                            case 1:
+                                //axisInput.x = 0;
+                                axisInput.y -= axisMagnitude;
+                                break;
+                            case 2:
+                                axisInput.x -= axisMagnitude;
+                                //axisInput.y = 0;
+                                break;
+                            case 3:
+                                axisInput.x += axisMagnitude;
+                                //axisInput.y = 0;
+                                break;
+                            //default:
+                            //    axisInput.x = 0;
+                            //    axisInput.y = 0;
+                            //    break;
                         }
+                        axisInput.x = Mathf.Clamp(axisInput.x, -1, 1);
+                        axisInput.y = Mathf.Clamp(axisInput.y, -1, 1);
                     }
+                    else
+                    {
+                        detectionText.text = "Detected Gesture: None";
+                    }
+                    
                 }
                 else
                 {
@@ -93,23 +136,27 @@ public class Connection : MonoBehaviour
     void Update()
     {
 #if !UNITY_WEBGL || UNITY_EDITOR
-        websocket.DispatchMessageQueue();
+        if (websocket.State == WebSocketState.Open)
+            websocket.DispatchMessageQueue();
 #endif
     }
 
     public void TrainGesture(int gestureNumber)
     {
-        for (var i = 0; i < NUMBER_GESTURES; i++)
+        if (gestureNumber > 0 && gestureNumber <= NUMBER_GESTURES)
         {
-            gestureTrainButtons[i].enabled = false;
+            for (var i = 0; i < NUMBER_GESTURES; i++)
+            {
+                gestureTrainButtons[i].enabled = false;
+            }
+            gestureTrainTexts[gestureNumber - 1].text = "...";
+            statusText.text = "Wait for LED On to Perform Gesture " + gestureNumber.ToString();
         }
-        gestureTrainTexts[gestureNumber - 1].text = "...";
-        statusText.text = "Wait for LED On to Perform Gesture " + gestureNumber.ToString();
 
         SendWebSocketMessage(string.Format("GATT WRITE 0012 {0:X2}00", gestureNumber));
     }
 
-    void SendWebSocketMessage(string message)
+    public void SendWebSocketMessage(string message)
     {
         if (websocket.State == WebSocketState.Open)
         {
@@ -117,12 +164,25 @@ public class Connection : MonoBehaviour
         }
         else
         {
-            Debug.Log("Socket not opened");
+            Debug.LogWarning("Socket not opened");
         }
     }
 
     private async void OnApplicationQuit()
     {
         await websocket.Close();
+    }
+
+    public float GetAxis(string axis)
+    {
+        if (axis == "Vertical")
+        {
+            return axisInput.y;
+        }
+        else if (axis == "Horizontal")
+        {
+            return axisInput.x;
+        }
+        return 0;
     }
 }

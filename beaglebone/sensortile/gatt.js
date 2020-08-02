@@ -11,7 +11,7 @@ const GATT_ARGS = [
 
 const DATA_EXP = /(?:handle\s+=\s+)(0x[0-9a-f]{4})\s+(?:value:\s+)([0-9a-f]{2}(?:\s*[0-9a-f]{2})*)/i
 
-function writeRequest (handle, value, onDataCallback) {
+function writeRequest (handle, value, { onData, onError, onComplete }) {
   console.log(`Starting ${GATT_TOOL}...`)
   const child = spawn(GATT_TOOL, [
     ...GATT_ARGS,
@@ -24,6 +24,7 @@ function writeRequest (handle, value, onDataCallback) {
   // Error when the child process could not start
   child.on('error', (err) => {
     console.error(`Failed to start ${GATT_TOOL}:`, err)
+    onError && onError(err)
   })
 
   let recvBuffer = ''
@@ -43,7 +44,7 @@ function writeRequest (handle, value, onDataCallback) {
     lines.forEach((str, index) => {
       const matches = str.match(DATA_EXP)
       if (matches) {
-        onDataCallback({
+        onData && onData({
           handle: matches[1],
           value: matches[2]
         })
@@ -55,12 +56,15 @@ function writeRequest (handle, value, onDataCallback) {
 
   // When some error is written
   child.stderr.on('data', (data) => {
-    console.error('Error:', data.toString())
+    const err = data.toString()
+    console.error('Error:', err)
+    onError && onError(err)
   })
 
   // When the solver script finishes
   child.on('close', (code, signal) => {
     console.log(`${GATT_TOOL} process exited with code ${code} by signal ${signal}`)
+    onComplete && onComplete()
   })
 
   return child
