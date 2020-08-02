@@ -221,10 +221,8 @@ int main(void) {
 
 			if (hasTrained) {
 				loc = RunANN(LSM6DSM_G_0_handle, &net);
-				if (loc >= 0 && loc < NUMBER_GESTURES) {
-					/* Send motion data to BLE connection */
-					Motion_Update(hasTrained, loc, trainedGestureDataCycle);
-				}
+				/* Send motion data to BLE connection */
+				Motion_Update(hasTrained, loc, trainedGestureDataCycle);
 			}
 
 			BSP_LED_Off(LED1);

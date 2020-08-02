@@ -386,11 +386,12 @@ tBleStatus Motion_Update(uint8_t hasTrained, uint8_t gestureNumber, uint8_t *tra
 	ret = aci_gatt_update_char_value(HWServW2STHandle, MotionCharHandle, 0,
 			MotionCharSize, buff);
 
-	if (ret != BLE_STATUS_SUCCESS) {
+	if (ret == BLE_STATUS_SUCCESS) {
+		STLBLE_PRINTF("\r\nBLE Sent: hasTrained=%i gesture=%i\r\n", hasTrained, gestureNumber);
+	} else {
 		STLBLE_PRINTF("Error Updating Motion Char\r\n");
-		return BLE_STATUS_ERROR;
 	}
-	return BLE_STATUS_SUCCESS;
+	return ret;
 }
 
 /**
