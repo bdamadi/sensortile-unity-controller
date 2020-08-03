@@ -1,4 +1,4 @@
-const { writeRequest } = require('./gatt')
+const { connect } = require('./gatt')
 const WebSocket = require('ws')
 const wss = new WebSocket.Server({ port: 1234 })
 
@@ -26,20 +26,35 @@ wss.on('connection', (ws) => {
 
     const matches = message.match(GATT_WRITE_CMD)
     if (matches) {
-      if (gattProcess == null) {
+      if (gattProcess != null) {
         const handle = matches[1]
         const value = matches[2]
-        gattProcess = writeRequest(handle, value, { onData, onError })
+        gattProcess.stdin.write(`char-write-req ${handle} ${value}\r\n`)
       } else {
-        console.log('gatttool is already running')
-        ws.send(`ERROR:gatttool is already running`)
+        console.error('gatttool is not running')
+        ws.send(`ERROR:gatttool is not running`)
+      }
+    } else if (message === 'GATT START') {
+      if (gattProcess == null) {
+        gattProcess = connect({ onData, onError })
+        gattProcess.stdin.write('connect\r\n')
+      } else {
+        console.error('gatttool is running')
+        ws.send(`ERROR:gatttool is running`)
+      }
+    } else if (message === 'GATT CONNECT') {
+      if (gattProcess != null) {
+        gattProcess.stdin.write('connect\r\n')
+      } else {
+        console.error('gatttool is not running')
+        ws.send(`ERROR:gatttool is not running`)
       }
     } else if (message === 'GATT STOP') {
       if (gattProcess != null) {
         gattProcess.kill()
         gattProcess = null
       } else {
-        console.log('gatttool is not running')
+        console.error('gatttool is not running')
         ws.send(`ERROR:gatttool is not running`)
       }
     }
