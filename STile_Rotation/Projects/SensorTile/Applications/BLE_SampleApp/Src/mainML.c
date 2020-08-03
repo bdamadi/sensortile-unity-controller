@@ -64,25 +64,26 @@
 #define ANGLE_MAG_MAX_THRESHOLD 30
 #define MAX_ROTATION_ACQUIRE_CYCLES 2000
 
+
 //#define NOT_DEBUGGING
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 
-static volatile uint8_t MEMSInterrupt = 0;
-static volatile uint8_t no_H_HTS221 = 0;
-static volatile uint8_t no_T_HTS221 = 0;
-static volatile uint8_t no_GG = 0;
+//static volatile uint8_t MEMSInterrupt = 0;
+//static volatile uint8_t no_H_HTS221 = 0;
+//static volatile uint8_t no_T_HTS221 = 0;
+//static volatile uint8_t no_GG = 0;
 
 void *LSM6DSM_X_0_handle = NULL;
 void *LSM6DSM_G_0_handle = NULL;
 void *LSM303AGR_X_0_handle = NULL;
 void *LSM303AGR_M_0_handle = NULL;
-static void *LPS22HB_P_0_handle = NULL;
-static void *LPS22HB_T_0_handle = NULL;
-static void *HTS221_H_0_handle = NULL;
-static void *HTS221_T_0_handle = NULL;
-static void *GG_handle = NULL;
+//static void *LPS22HB_P_0_handle = NULL;
+//static void *LPS22HB_T_0_handle = NULL;
+//static void *HTS221_H_0_handle = NULL;
+//static void *HTS221_T_0_handle = NULL;
+//static void *GG_handle = NULL;
 
 int xyz_initial[3], xyz_initial_prev[3];
 int xyz_initial_filter[3], xyz_initial_filter_prev[3];
@@ -139,15 +140,9 @@ void motion_softmax(int size, float *x, float *y) {
 	float norm;
 
 	norm = sqrt((x[0] * x[0]) + (x[1] * x[1]) + (x[2] * x[2]));
-	y[0] = abs(x[0]) / norm;
-	y[1] = abs(x[1]) / norm;
-	y[2] = abs(x[2]) / norm;
-
-	int i;
-	for (i = 0; i < size; i++) {
-		if (x[i] < 0.0)
-			y[i] = y[i] * -1.0;
-	}
+	y[0] = x[0] / norm;
+	y[1] = x[1] / norm;
+	y[2] = x[2] / norm;
 }
 
 void LED_Code_Blink(int count) {
@@ -256,8 +251,8 @@ int Feature_Extraction_Gyro(void *handle, int * ttt_1, int * ttt_2,
 	 * sensor sampling period
 	 *
 	 * Permit integration loop to operate no longer than a maximum
-	 * number of cycles, MAX_ROTATION_ACQUIRE_CYCLES. Note: This sets
-	 * maximum acquisition time to be MAX_ROTATION_ACQUIRE_CYCLES*Tsample
+	 * number of cycles, maxAcquiredCycles. Note: This sets
+	 * maximum acquisition time to be maxAcquiredCycles*Tsample
 	 *
 	 */
 
@@ -309,8 +304,8 @@ int Feature_Extraction_Gyro(void *handle, int * ttt_1, int * ttt_2,
 		 * Suppress value of Z-Axis rotation signals
 		 */
 
-		ttt_initial[2] = 0;
-		ttt[2] = 0;
+//		ttt_initial[2] = 0;
+//		ttt[2] = 0;
 
 		/*
 		 * Compute rotation angles by integration
@@ -393,6 +388,7 @@ void printOutput_ANN(ANN *net, int input_state, int * error) {
 
 	*error = 0;
 
+	loc = -1;
 	count = 0;
 	mean_output = 0;
 	for (i = 0; i < net->topology[net->n_layers - 1]; i++) {
@@ -471,6 +467,28 @@ void printOutput_ANN(ANN *net, int input_state, int * error) {
 
 }
 
+int CheckStartPosition(int maxAccquiredCycles)
+{
+	int ttt[3];
+	int i = 0;
+
+	while (1)
+	{
+		getAccel(LSM6DSM_X_0_handle, ttt);
+		if (abs(ttt[0]) < 100 && abs(ttt[1]) < 100 && ttt[2] > 950 && ttt[2] < 1050)
+			return 1;
+
+		if (maxAccquiredCycles > 0) {
+			i++;
+			if (i == maxAccquiredCycles)
+				return 0;
+		}
+
+//		STLBLE_PRINTF("\r\nAccel Values\t%i\t\%i\t\%i", ttt[0], ttt[1], ttt[2]);
+		HAL_Delay(DATA_PERIOD_MS);
+	}
+}
+
 
 void CollectTrainData(void *handle, ANN *net, int trainingCycle, int gestureNumber) {
 
@@ -480,14 +498,14 @@ void CollectTrainData(void *handle, ANN *net, int trainingCycle, int gestureNumb
 	int ttt_1, ttt_2, ttt_3, ttt_mag_scale;
 
 	STLBLE_PRINTF("\r\nMove to Start Position - Wait for LED On");
-	HAL_Delay(START_POSITION_INTERVAL);
+	CheckStartPosition(-1); //	HAL_Delay(START_POSITION_INTERVAL);
 
 	STLBLE_PRINTF("\r\nPerform Gesture %d on LED On", gestureNumber + 1);
 
 	Feature_Extraction_Gyro(handle, &ttt_1, &ttt_2, &ttt_3,
 			&ttt_mag_scale, MAX_ROTATION_ACQUIRE_CYCLES);
 
-	STLBLE_PRINTF("\r\nAngle Values %i\t\%i\%i", ttt_1, ttt_2, ttt_3);
+	STLBLE_PRINTF("\r\nAngle Values\t%i\t\%i\t\%i", ttt_1, ttt_2, ttt_3);
 
 	XYZ[0] = (float) ttt_1;
 	XYZ[1] = (float) ttt_2;
@@ -589,15 +607,20 @@ int RunANN(void *handle, ANN *net) {
 	float XYZ[3];
 	float point;
 	int ttt_1, ttt_2, ttt_3, ttt_mag_scale;
-	int i, j, loc;
+	int i, j, loc, valid;
 
 	BSP_LED_Off(LED1);
 
-	STLBLE_PRINTF("\n\rMove to Start Position - Wait for LED On");
-//	HAL_Delay(START_POSITION_INTERVAL);
+	//STLBLE_PRINTF("\n\rMove to Start Position - Wait for LED On");
+	//HAL_Delay(START_POSITION_INTERVAL);
+	if (!CheckStartPosition(100)) {
+		return -2;
+	}
 
-	Feature_Extraction_Gyro(handle, &ttt_1, &ttt_2, &ttt_3,
-			&ttt_mag_scale, 5);
+	valid = Feature_Extraction_Gyro(handle, &ttt_1, &ttt_2, &ttt_3,
+			&ttt_mag_scale, 100);
+	if (!valid)
+		return -2;
 
 	XYZ[0] = (float) ttt_1;
 	XYZ[1] = (float) ttt_2;
