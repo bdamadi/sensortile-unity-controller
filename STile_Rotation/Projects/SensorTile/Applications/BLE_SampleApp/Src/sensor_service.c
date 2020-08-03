@@ -55,6 +55,7 @@
 /* Exported variables ---------------------------------------------------------*/
 int connected = FALSE;
 uint8_t set_connectable = TRUE;
+uint8_t just_connected = FALSE;
 
 /* Imported Variables -------------------------------------------------------------*/
 extern uint32_t ConnectionBleStatus;
@@ -154,6 +155,7 @@ tBleStatus Add_ConfigW2ST_Service(void) {
 	if (ret != BLE_STATUS_SUCCESS)
 		goto fail;
 
+
 	COPY_CONFIG_W2ST_CHAR_UUID(uuid);
 	ret = aci_gatt_add_char(ConfigServW2STHandle, UUID_TYPE_128, uuid,
 			20 /* Max Dimension */,
@@ -166,6 +168,8 @@ tBleStatus Add_ConfigW2ST_Service(void) {
 	if (ret != BLE_STATUS_SUCCESS) {
 		goto fail;
 	}
+
+	STLBLE_PRINTF("** Config Service Handle=%04x\r\n", ConfigCharHandle);
 
 	return BLE_STATUS_SUCCESS;
 
@@ -343,20 +347,19 @@ tBleStatus Add_HWServW2ST_Service(void) {
 	if (ret != BLE_STATUS_SUCCESS) {
 		goto fail;
 	}
-	STLBLE_PRINTF("** Motion Read Handle=%04x\r\n", MotionCharHandle + 1);
-	STLBLE_PRINTF("** Motion Write Handle=%04x\r\n", MotionCharHandle + 2);
+	STLBLE_PRINTF("** Motion Service Handle=%04x\r\n", MotionCharHandle);
 
 	COPY_LED_W2ST_CHAR_UUID(uuid);
-	ret = aci_gatt_add_char(HWServW2STHandle, UUID_TYPE_128, uuid, 2 + 1,
-	CHAR_PROP_NOTIFY | CHAR_PROP_READ,
-	ATTR_PERMISSION_NONE,
-	GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP, 16, 0, &TrainingCharHandle);
+	ret = aci_gatt_add_char(HWServW2STHandle, UUID_TYPE_128, uuid,
+			2 + 1,
+			CHAR_PROP_NOTIFY | CHAR_PROP_READ,
+			ATTR_PERMISSION_NONE,
+			GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP, 16, 0, &TrainingCharHandle);
 
 	if (ret != BLE_STATUS_SUCCESS) {
 		goto fail;
 	}
-	STLBLE_PRINTF("** Training Read Handle=%04x\r\n", TrainingCharHandle + 1);
-	STLBLE_PRINTF("** Training Write Handle=%04x\r\n", TrainingCharHandle + 2);
+	STLBLE_PRINTF("** Training Service Handle=%04x\r\n", TrainingCharHandle);
 
 	return BLE_STATUS_SUCCESS;
 
@@ -387,7 +390,7 @@ tBleStatus Motion_Update(uint8_t hasTrained, uint8_t gestureNumber, uint8_t *tra
 			MotionCharSize, buff);
 
 	if (ret == BLE_STATUS_SUCCESS) {
-		STLBLE_PRINTF("\r\nBLE Sent: hasTrained=%i gesture=%i\r\n", hasTrained, gestureNumber);
+		//STLBLE_PRINTF("\r\nBLE Sent: hasTrained=%i gesture=%i\r\n", hasTrained, gestureNumber);
 	} else {
 		STLBLE_PRINTF("Error Updating Motion Char\r\n");
 	}
@@ -552,6 +555,7 @@ void setConnectable(void) {
 static void GAP_ConnectionComplete_CB(uint8_t addr[6], uint16_t handle) {
 	connected = TRUE;
 	connection_handle = handle;
+	just_connected = TRUE;
 
 #ifdef ENABLE_USB_DEBUG_CONNECTION
 	STLBLE_PRINTF(">>>>>>CONNECTED %x:%x:%x:%x:%x:%x\r\n", addr[5], addr[4],
@@ -753,7 +757,7 @@ void Attribute_Modified_CB(uint16_t attr_handle, uint8_t * att_data,
 		/* Received one write command from Client on Configuration characteristc */
 		ConfigCommandParsing(att_data, data_length);
 	} else {
-		STLBLE_PRINTF("Notification UNKNOW handle\r\n");
+		STLBLE_PRINTF("Notification UNKNOW handle=%d data_length=%d att_data[0]=%d att_data[1]=%d\r\n", attr_handle, data_length, att_data[0], att_data[1]);
 	}
 }
 

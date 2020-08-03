@@ -60,6 +60,7 @@
 
 /* Imported Variables -------------------------------------------------------------*/
 extern uint8_t set_connectable;
+extern uint8_t just_connected;
 
 extern TIM_HandleTypeDef TimHandle;
 extern void CDC_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
@@ -196,7 +197,7 @@ int main(void) {
 	STLBLE_PRINTF("Waiting training request to start training\r\n");
 
 	/* Infinite loop */
-
+	int lebBlink = 100;
 	while (1) {
 		/* handle BLE event */
 		if (HCI_ProcessEvent) {
@@ -210,12 +211,16 @@ int main(void) {
 			set_connectable = FALSE;
 		}
 
+		if (just_connected) {
+			/* Send motion data to BLE connection */
+			Motion_Update(hasTrained, -1, trainedGestureDataCycle);
+			just_connected = FALSE;
+		}
+
 		/* Get sysTick value and check if it's time to execute the task */
 		msTick = HAL_GetTick();
 		if (msTick % DATA_PERIOD_MS == 0 && msTickPrev != msTick) {
 			msTickPrev = msTick;
-
-			BSP_LED_On(LED1);
 
 			//RTC_Handler( &RtcHandle );
 
@@ -223,9 +228,14 @@ int main(void) {
 				loc = RunANN(LSM6DSM_G_0_handle, &net);
 				/* Send motion data to BLE connection */
 				Motion_Update(hasTrained, loc, trainedGestureDataCycle);
+			} else {
+				/* Blink the LED indicating that training is required */
+				lebBlink--;
+				if (lebBlink <= 0) {
+					BSP_LED_Toggle(LED1);
+					lebBlink = 100;
+				}
 			}
-
-			BSP_LED_Off(LED1);
 		}
 
 		// Check training request
