@@ -58,10 +58,16 @@ public class Connection : MonoBehaviour
             }
             else if (message.StartsWith("ERROR:"))
             {
-                statusText.text = message.Substring("ERROR:".Length);
+                var error = message.Substring("ERROR:".Length);
+                statusText.text = error;
                 for (var i = 0; i < NUMBER_GESTURES; i++)
                 {
                     gestureTrainButtons[i].enabled = true;
+                }
+
+                if (error == "Disconnected")
+                {
+                    SendWebSocketMessage("GATT CONNECT");
                 }
             }
             else if (message.StartsWith("DATA:"))

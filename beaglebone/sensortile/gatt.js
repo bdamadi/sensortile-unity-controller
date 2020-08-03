@@ -55,7 +55,11 @@ function connect ({ onData, onError, onComplete }) {
   child.stderr.on('data', (data) => {
     const err = data.toString()
     console.error('Error:', err)
-    onError && onError(err)
+    if (err.indexOf('Disconnected') >= 0 || err.indexOf('Invalid file descriptor') >= 0) {
+      onError && onError('Disconnected')
+    } else {
+      onError && onError(err)
+    }
   })
 
   // When the solver script finishes
