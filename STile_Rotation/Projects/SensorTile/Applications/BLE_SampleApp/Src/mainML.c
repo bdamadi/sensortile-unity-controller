@@ -475,7 +475,7 @@ int CheckStartPosition(int maxAccquiredCycles)
 	while (1)
 	{
 		getAccel(LSM6DSM_X_0_handle, ttt);
-		if (abs(ttt[0]) < 100 && abs(ttt[1]) < 100 && ttt[2] > 950 && ttt[2] < 1050)
+		if (abs(ttt[0]) < 200 && abs(ttt[1]) < 200 && ttt[2] > 900 && ttt[2] < 1100)
 			return 1;
 
 		if (maxAccquiredCycles > 0) {
@@ -613,7 +613,7 @@ int RunANN(void *handle, ANN *net) {
 
 	//STLBLE_PRINTF("\n\rMove to Start Position - Wait for LED On");
 	//HAL_Delay(START_POSITION_INTERVAL);
-	if (!CheckStartPosition(100)) {
+	if (!CheckStartPosition(50)) {
 		return -2;
 	}
 
