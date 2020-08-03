@@ -21,7 +21,10 @@ public class Connection : MonoBehaviour
     WebSocket websocket;
 
     public float axisMagnitude = 0.5f;
+
     Vector3 axisInput;
+    int primaryButtonTriggered;
+    int secondaryButtonTriggered;
 
     // Start is called before the first frame update
     async void Start()
@@ -49,9 +52,12 @@ public class Connection : MonoBehaviour
             var message = System.Text.Encoding.UTF8.GetString(bytes);
             Debug.Log("OnMessage! " + message);
 
-            if (message.StartsWith("ERROR:"))
+            if (message == "READY")
             {
-                SendWebSocketMessage("GATT STOP");
+                SendWebSocketMessage("GATT START");
+            }
+            else if (message.StartsWith("ERROR:"))
+            {
                 statusText.text = message.Substring("ERROR:".Length);
                 for (var i = 0; i < NUMBER_GESTURES; i++)
                 {
@@ -63,7 +69,9 @@ public class Connection : MonoBehaviour
                 var bytesString = message.Substring("DATA:".Length).Split(' ');
                 for (var i = 0; i < NUMBER_GESTURES; i++)
                 {
-                    gestureTrainTexts[i].text = bytesString[4 + i];
+                    gestureTrainTexts[i].text = (i + 1).ToString();
+                    gestureTrainTexts[i].fontStyle = bytesString[4 + i] == "00"
+                        ? FontStyle.Normal : FontStyle.Bold;
                 }
 
                 int trainingStatus = int.Parse(bytesString[2], System.Globalization.NumberStyles.HexNumber);
@@ -90,24 +98,30 @@ public class Connection : MonoBehaviour
                         {
                             case 0:
                                 //axisInput.x = 0;
-                                axisInput.y += axisMagnitude;
+                                axisInput.y = axisMagnitude;
                                 break;
                             case 1:
                                 //axisInput.x = 0;
-                                axisInput.y -= axisMagnitude;
+                                axisInput.y = -axisMagnitude;
                                 break;
                             case 2:
-                                axisInput.x -= axisMagnitude;
+                                axisInput.x = -axisMagnitude;
                                 //axisInput.y = 0;
                                 break;
                             case 3:
-                                axisInput.x += axisMagnitude;
+                                axisInput.x = axisMagnitude;
                                 //axisInput.y = 0;
                                 break;
-                            //default:
-                            //    axisInput.x = 0;
-                            //    axisInput.y = 0;
-                            //    break;
+                            case 4:
+                                primaryButtonTriggered++;
+                                break;
+                            case 5:
+                                secondaryButtonTriggered++;
+                                break;
+                            default:
+                                axisInput.x = 0;
+                                axisInput.y = 0;
+                                break;
                         }
                         axisInput.x = Mathf.Clamp(axisInput.x, -1, 1);
                         axisInput.y = Mathf.Clamp(axisInput.y, -1, 1);
@@ -115,12 +129,13 @@ public class Connection : MonoBehaviour
                     else
                     {
                         detectionText.text = "Detected Gesture: None";
+                        axisInput.x = 0;
+                        axisInput.y = 0;
                     }
                     
                 }
                 else
                 {
-                    SendWebSocketMessage("GATT STOP");
                     statusText.text = "Click a button to train";
                     for (var i = 0; i < NUMBER_GESTURES; i++)
                     {
@@ -158,6 +173,7 @@ public class Connection : MonoBehaviour
 
     public void SendWebSocketMessage(string message)
     {
+        Debug.Log("SendWebSocketMessage: " + message);
         if (websocket.State == WebSocketState.Open)
         {
             websocket.SendText(message);
@@ -182,6 +198,21 @@ public class Connection : MonoBehaviour
         else if (axis == "Horizontal")
         {
             return axisInput.x;
+        }
+        return 0;
+    }
+
+    public float GetButton(string button)
+    {
+        if (button == "Primary" && primaryButtonTriggered > 0)
+        {
+            primaryButtonTriggered--;
+            return 1f;
+        }
+        else if (button == "Secondary" && secondaryButtonTriggered > 0)
+        {
+            secondaryButtonTriggered--;
+            return 1f;
         }
         return 0;
     }
