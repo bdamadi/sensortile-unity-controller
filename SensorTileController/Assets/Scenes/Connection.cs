@@ -120,9 +120,13 @@ public class Connection : MonoBehaviour
                                 break;
                             case 4:
                                 primaryButtonTriggered++;
+                                axisInput.x = 0;
+                                axisInput.y = 0;
                                 break;
                             case 5:
                                 secondaryButtonTriggered++;
+                                axisInput.x = 0;
+                                axisInput.y = 0;
                                 break;
                             default:
                                 axisInput.x = 0;
