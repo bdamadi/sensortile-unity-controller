@@ -103,20 +103,20 @@ public class Connection : MonoBehaviour
                         switch (detectedGesture)
                         {
                             case 0:
-                                //axisInput.x = 0;
+                                axisInput.x = 0;
                                 axisInput.y = axisMagnitude;
                                 break;
                             case 1:
-                                //axisInput.x = 0;
+                                axisInput.x = 0;
                                 axisInput.y = -axisMagnitude;
                                 break;
                             case 2:
                                 axisInput.x = -axisMagnitude;
-                                //axisInput.y = 0;
+                                axisInput.y = 0;
                                 break;
                             case 3:
                                 axisInput.x = axisMagnitude;
-                                //axisInput.y = 0;
+                                axisInput.y = 0;
                                 break;
                             case 4:
                                 primaryButtonTriggered++;
@@ -135,8 +135,8 @@ public class Connection : MonoBehaviour
                     else
                     {
                         detectionText.text = "Detected Gesture: None";
-                        axisInput.x = 0;
-                        axisInput.y = 0;
+                        //axisInput.x = 0;
+                        //axisInput.y = 0;
                     }
                     
                 }
