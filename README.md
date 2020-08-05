@@ -6,6 +6,8 @@ The motivation of this project is to apply to build a hand-free gaming controlle
 
 In this project, SensorTile is used as the game controller that allow players to perform some motion patterns that are detected by an embedded machine learning (ML) model running on the SensorTile’s processor. It allows decent machine learning technique running on a lightweight device and works independently to a target application. SensorTile detects user’s gesture and send the result to the integrated game engine via Bluetooth Low Energy and Wifi connection.
 
+[Demo Video](https://youtu.be/VUMhXRM9ZEg)
+
 ## Project Code
 
 This Github repository of this project contains 3 sub-projects including:
