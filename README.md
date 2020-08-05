@@ -1,5 +1,22 @@
 # SensorTile as Unity Game Controller
 
+# Final Project Submission
+
+* Final Report: [FinalReport.pdf](FinalReport.pdf)
+
+* Slides: [FinalPresentation.pdf](FinalPresentation.pdf)
+
+* Live Demo: https://youtu.be/VUMhXRM9ZEg
+
+* Code: This project includes 3 sub-projects:
+  * [STile_Rotation](STile_Rotation)
+  * [beaglebone/sensortile](beaglebone/sensortile)
+  * [SensorTileController](SensorTileController)
+
+* Data:
+  * [training.csv](data/training.csv)
+  * [testing.csv](data/testing.csv)
+
 ## Goal of the Project
 
 The motivation of this project is to apply to build a hand-free gaming controller. Players just need to wear a wearable device, e.g. smart watch, to play games using hand gestures or body movement. Another application can be human activity tracking and visualization in 3D game engine such as Unity.
